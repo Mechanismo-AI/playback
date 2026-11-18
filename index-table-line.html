@@ -26,7 +26,7 @@ canvas { width: 100%; display: block; background: #fff; outline: 1px solid var(-
 <body>
 <main>
 <h1>index-table-line-v1: playback</h1>
-<p class="note">Two flat views of the same data as this line's FreeCAD model, played over the line's cycle. This page
+<p class="note">Flat views of the same data as this line's FreeCAD model, played over the line's cycle. This page
 is not the model: it shows only what the model's data holds, each part's outline placed as the model places it, with
 no shading or perspective; nearer parts are painted over farther ones.</p>
 <div class="controls">
@@ -35,19 +35,35 @@ no shading or perspective; nearer parts are painted over farther ones.</p>
 <option value="0.5">0.5&times;</option><option value="1">1&times;</option></select></label>
 <input id="pb-master" type="range" min="0" max="360" step="0.1" value="0" aria-label="master angle">
 <span id="pb-readout" class="note"></span>
+<label>Go to <select id="pb-goto" aria-label="a station to frame"><option value="-" disabled>a station&hellip;</option>
+<option value="">whole line</option></select></label>
 <label>Trace <select id="pb-trace" aria-label="a point to trace"><option value="">none</option></select></label>
 </div>
-<h2>From the front (the line runs left to right; up is up)</h2>
-<div class="zoom"><button id="pb-front-in" type="button">+</button><button id="pb-front-out" type="button">&minus;</button>
-<button id="pb-front-fit" type="button">Fit</button> <span class="note">drag to move; wheel or pinch to zoom</span></div>
-<canvas id="pb-front" aria-label="the line from the front"></canvas>
-<h2>From above (the line runs left to right; up the page is away from the front)</h2>
-<div class="zoom"><button id="pb-plan-in" type="button">+</button><button id="pb-plan-out" type="button">&minus;</button>
-<button id="pb-plan-fit" type="button">Fit</button> <span class="note">drag to move; wheel or pinch to zoom</span></div>
-<canvas id="pb-plan" aria-label="the line from above"></canvas>
+<h2 id="pb-a-title">From the front (the line runs left to right; up is up)</h2>
+<div class="zoom"><label>View <select id="pb-a-view" aria-label="the view in this pane"><option value="front" selected>front</option><option value="back">back</option><option value="left">left end</option><option value="right">right end</option><option value="plan">above</option><option value="below">below</option><option value="front-left">above, front left</option><option value="front-right">above, front right</option><option value="back-left">above, back left</option><option value="back-right">above, back right</option></select></label>
+<button id="pb-a-in" type="button">+</button><button id="pb-a-out" type="button">&minus;</button>
+<button id="pb-a-fit" type="button">Fit</button> <span class="note">drag to move; wheel or pinch to zoom</span></div>
+<p id="pb-a-slant" class="note" hidden>At a slant, parts are painted by the depth of their middles; where a long part
+and a short one overlap closely, the order can be wrong. At a slant, a slot open at an edge or made of several cuts is
+drawn closed; the flat views show it.</p>
+<canvas id="pb-a" aria-label="the line in this pane's view"></canvas>
+<h2 id="pb-b-title">From above (the line runs left to right; up the page is away from the front)</h2>
+<div class="zoom"><label>View <select id="pb-b-view" aria-label="the view in this pane"><option value="front">front</option><option value="back">back</option><option value="left">left end</option><option value="right">right end</option><option value="plan" selected>above</option><option value="below">below</option><option value="front-left">above, front left</option><option value="front-right">above, front right</option><option value="back-left">above, back left</option><option value="back-right">above, back right</option></select></label>
+<button id="pb-b-in" type="button">+</button><button id="pb-b-out" type="button">&minus;</button>
+<button id="pb-b-fit" type="button">Fit</button> <span class="note">drag to move; wheel or pinch to zoom</span></div>
+<p id="pb-b-slant" class="note" hidden>At a slant, parts are painted by the depth of their middles; where a long part
+and a short one overlap closely, the order can be wrong. At a slant, a slot open at an edge or made of several cuts is
+drawn closed; the flat views show it.</p>
+<canvas id="pb-b" aria-label="the line in this pane's view"></canvas>
 <h2>The brief's zones</h2><p class="legend">A zone is<span style="background:#33b84d"></span>green while it is met,<span style="background:#d93333"></span>red while the part is in it but it is not met, and<span style="background:#9e9e9e"></span>grey otherwise, as in the FreeCAD model. The zones show position, angle and holds for the nominal design. The mean position tolerance, a monotone carry between targets, the carry&#x27;s level and straightness, dynamics limits, pressure and transmission angles, and robustness on mis-built copies are not shown: see the report of the design.</p>
 <h2>What a view leaves out</h2>
 <ul class="note">
+<li>Each pane can be turned to the line's front, back, either end, above or below, on the same clock. From an end
+the stations stand one behind another, nearer painted over farther; with Go to, an end view draws that station alone
+(its rigs and brief too), which shows its timing.</li>
+<li>Four views look from above at a corner, at a slant. There a hole right through a part, wholly inside it and clear
+of other cuts, is seen through where its two ends line up; a slot open at an edge or made of several cuts is drawn
+closed there, and the flat views show it.</li>
 <li>A part seen face on shows its true outline, with the holes that run right through it (a blind hole or a
 counterbore is not drawn); seen edge on, the outline of its whole depth; a round part is drawn with 72 sides.</li>
 <li>No hidden lines are removed beyond painting nearer parts over farther ones; there is no shading or perspective.
@@ -64,7 +80,67 @@ const PB = (() => {
   const SEG = 72;
   const mod = (a, b) => a - b * Math.floor(a / b);
   const wrap = (d) => mod(d + 180, 360) - 180;
-  const VIEWS = {front: {d: [0, 1, 0], u: 0, v: 2, near: -1}, plan: {d: [0, 0, 1], u: 0, v: 1, near: 1}};
+  // each flat view: the line's axis and sign across the page (u), up the page (v) and away from the eye (d)
+  const VIEWS = {front: {u: [0, 1], v: [2, 1], d: [1, 1]}, back: {u: [0, -1], v: [2, 1], d: [1, -1]},
+                 left: {u: [1, -1], v: [2, 1], d: [0, 1]}, right: {u: [1, 1], v: [2, 1], d: [0, -1]},
+                 plan: {u: [0, 1], v: [1, 1], d: [2, -1]}, below: {u: [0, -1], v: [1, 1], d: [2, 1]}};
+  for (const [name, sx, sy] of [["front-left", -1, -1], ["front-right", 1, -1], ["back-left", -1, 1], ["back-right", 1, 1]]) {
+    // from above at a corner (the front is -y): the eye looks at the line along -(sx, sy, 1); up the page is the up
+    // of the line seen so, and across is the look crossed with it. An axis written as three numbers, not two
+    const r3 = Math.sqrt(3), d = [-sx / r3, -sy / r3, -1 / r3], k = 1 / Math.sqrt(6), up = [-sx * k, -sy * k, 2 * k];
+    VIEWS[name] = {u: [d[1] * up[2] - d[2] * up[1], d[2] * up[0] - d[0] * up[2], d[0] * up[1] - d[1] * up[0]], v: up, d,
+                   slant: true};
+  }
+  const at = (w, a) => a.length === 3 ? a[0] * w[0] + a[1] * w[1] + a[2] * w[2] : a[1] * w[a[0]];
+  const along3 = (a) => a.length === 3 ? a : [0, 1, 2].map((j) => j === a[0] ? a[1] : 0);   // an axis as three numbers
+  function inside(p, P) {               // a point strictly inside a polygon (ray cast)
+    let k = false;
+    for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
+      const [xi, yi] = P[i], [xj, yj] = P[j];
+      if ((yi > p[1]) !== (yj > p[1]) && p[0] < (xj - xi) * (p[1] - yi) / (yj - yi) + xi) k = !k;
+    }
+    return k;
+  }
+  function crosses(a, b, c, d) {        // two segments meet (touching counts)
+    const o = (p, q, r) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+    const d1 = o(c, d, a), d2 = o(c, d, b), d3 = o(a, b, c), d4 = o(a, b, d), e = 1e-9;
+    return (d1 > e && d2 < -e || d1 < -e && d2 > e) && (d3 > e && d4 < -e || d3 < -e && d4 > e)
+      || [[d1, c, d, a], [d2, c, d, b], [d3, a, b, c], [d4, a, b, d]].some(([v, p, q, r]) => Math.abs(v) <= e
+        && Math.min(p[0], q[0]) - e <= r[0] && r[0] <= Math.max(p[0], q[0]) + e
+        && Math.min(p[1], q[1]) - e <= r[1] && r[1] <= Math.max(p[1], q[1]) + e);
+  }
+  function within(C, P) {               // one outline wholly inside another, its edges crossing none of the other's
+    return C.every((p) => inside(p, P)) && C.every((a, i) => P.every((c, j) =>
+      !crosses(a, C[(i + 1) % C.length], c, P[(j + 1) % P.length])));
+  }
+  function apart(C, D) {                // two outlines' boxes clear of each other
+    const box = (Q) => [0, 1].map((k) => [Math.min(...Q.map((p) => p[k])), Math.max(...Q.map((p) => p[k]))]);
+    const [a, b] = [box(C), box(D)];
+    return [0, 1].some((k) => a[k][1] < b[k][0] - 1e-6 || b[k][1] < a[k][0] - 1e-6);
+  }
+  const seen = new WeakMap();           // each part's cuts seen through it at a slant (its own shape alone decides)
+  function seenThrough(b, op) {
+    if (!seen.has(op)) {
+      const acting = b.ops.filter((c) => c.cut && ends(c) && (c.group === undefined || c.group === op.group));
+      const flat2 = (o) => ends(o).a.map(([x, y]) => [x, y]);
+      const outline = op.op === "rod" ? null : flat2(op);
+      seen.set(op, !outline ? [] : acting.filter((c) => c.op !== "rod" && (c.op !== "prism" || convex(c.points))
+        && c.z[0] <= op.z[0] + 1e-6 && c.z[1] >= op.z[1] - 1e-6
+        && acting.every((o) => o === c || o.op === "rod" ? o === c : apart(flat2(c), flat2(o)))
+        && within(flat2(c), outline)));
+    }
+    return seen.get(op);
+  }
+  function convex(P) {                  // a plate's outline turns one way all round (no dwell, no notch)
+    let pos = 0, neg = 0;
+    for (let i = 0; i < P.length; i++) {
+      const [a, b, c] = [P[i], P[(i + 1) % P.length], P[(i + 2) % P.length]];
+      const z = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+      if (z > 1e-9) pos++; else if (z < -1e-9) neg++;
+    }
+    return !(pos && neg);
+  }
+  const project = (view, w) => [at(w, VIEWS[view].u), at(w, VIEWS[view].v)];
 
   function groups(data) {
     return [].concat(data.stations || [], data.nests || [], data.rigs || [], data.briefs || []);
@@ -162,10 +238,13 @@ const PB = (() => {
     if (!b.shade) return null;
     return present(b.shade.met, master) ? "met" : present(b.shade.missed, master) ? "missed" : "idle";
   }
-  function shapes(data, view, master) {
-    const V = VIEWS[view], out = [], dk = V.v === 2 ? 1 : 2;
+  function shapes(data, view, master, only) {   // ``only``: the groups to draw, or all
+    const V = VIEWS[view], out = [], snap = (x) => Math.floor(x * 1e9 + 0.5) / 1e9;
+    // at a slant, points the same but for rounding would sort apart and lose a hull's corner: kept to 1e-9 mm
+    const uv = V.slant ? (w) => [snap(at(w, V.u)), snap(at(w, V.v))] : (w) => [at(w, V.u), at(w, V.v)];
     const briefs = new Set((data.briefs || []).map((g) => g.id));
     for (const g of groups(data)) {
+      if (only && !only.includes(g.id)) continue;
       const R = g.frame.R, o = g.frame.origin, brief = briefs.has(g.id);
       const world = (p) => { const w = mul(R, p); return [w[0] + o[0], w[1] + o[1], w[2] + o[2]]; };
       for (const b of g.bodies) {
@@ -175,31 +254,46 @@ const PB = (() => {
         const put = (p) => world(pl.f(p));
         if (b.wire) {
           const W = b.wire.map(put);
-          out.push({g: g.id, b: b.name, i: -1, kind: "wire", pts: W.map((w) => [w[V.u], w[V.v]]), holes: [],
-                    depth: W.reduce((s, w) => s + w[dk], 0) / W.length, rgb, alpha, fixed});
+          out.push({g: g.id, b: b.name, i: -1, kind: "wire", pts: W.map(uv), holes: [],
+                    depth: W.reduce((s, w) => s + at(w, V.d), 0) / W.length, rgb, alpha, fixed});
         }
         const ops = [];                   // each op placed: face on or not, its outline, its depth range
         b.ops.forEach((op, i) => {
           const e = ends(op);
           if (!e) return;
-          const n = mul(R, mul(pl.M, e.axis));
-          const along = Math.abs(n[0] * V.d[0] + n[1] * V.d[1] + n[2] * V.d[2]) >= 1 - 1e-9;
-          const A = e.a.map(put), B = e.b.map(put), AB = A.concat(B), ds = AB.map((w) => w[dk]);
+          const n = mul(R, mul(pl.M, e.axis)), dd = along3(V.d);
+          const along = Math.abs(n[0] * dd[0] + n[1] * dd[1] + n[2] * dd[2]) >= 1 - 1e-9;
+          const A = e.a.map(put), B = e.b.map(put), AB = A.concat(B), ds = AB.map((w) => at(w, V.d));
           ops.push({i, op, along, A, AB, lo: Math.min(...ds), hi: Math.max(...ds),
                     depth: ds.reduce((s, d) => s + d, 0) / ds.length});
         });
         for (const q of ops) {
           if (q.op.cut) continue;         // a cut shows only as a hole through a face it runs right through
-          const pts = q.along ? q.A.map((w) => [w[V.u], w[V.v]]) : hull(q.AB.map((w) => [w[V.u], w[V.v]]));
+          const pts = q.along ? q.A.map(uv) : hull(q.AB.map(uv));
           const holes = !q.along ? [] : ops.filter((c) => c.op.cut && c.along
               && (c.op.group === undefined || c.op.group === q.op.group)
-              && c.lo <= q.lo + 1e-6 && c.hi >= q.hi - 1e-6).map((c) => c.A.map((w) => [w[V.u], w[V.v]]));
-          out.push({g: g.id, b: b.name, i: q.i, kind: q.along ? "face" : "hull", pts, holes, depth: q.depth, rgb, alpha, fixed});
+              && c.lo <= q.lo + 1e-6 && c.hi >= q.hi - 1e-6).map((c) => c.A.map(uv));
+          const shape = {g: g.id, b: b.name, i: q.i, kind: q.along ? "face" : "hull", pts, holes, depth: q.depth, rgb, alpha, fixed};
+          if (V.slant && !q.along) {      // at a slant
+            if (q.op.op === "prism" && !convex(q.op.points)) {   // a cam: its two faces and its sides, filled as one
+              const n_ = q.A.length;
+              shape.kind = "pieces";
+              shape.pieces = [q.A.map(uv), q.AB.slice(n_).map(uv)].concat(q.A.map((_, j) =>
+                [q.A[j], q.A[(j + 1) % n_], q.AB[n_ + (j + 1) % n_], q.AB[n_ + j]].map(uv)));
+            }
+            // a cut is seen through where its outlines at the solid's two faces overlap, which is exact for one
+            // convex hole through the whole depth, wholly inside the solid and clear of every other cut on it; a slot
+            // open at an edge or made of several cuts is drawn closed at a slant (the pane says so)
+            shape.windows = seenThrough(b, q.op).map((c) => {
+              const e = ends(Object.assign({}, c, {z: q.op.z}));
+              return [e.a.map(put).map(uv), e.b.map(put).map(uv)];
+            });
+          }
+          out.push(shape);
         }
       }
     }
-    // far to near: in front, the larger y is farther; from above, the lower z is
-    out.sort((a, b) => V.near < 0 ? b.depth - a.depth : a.depth - b.depth);
+    out.sort((a, b) => b.depth - a.depth);   // far to near: the depth runs away from the eye
     return out;
   }
   function point(data, gid, name, p, master) {   // a body point in the line's frame at a master angle
@@ -228,21 +322,73 @@ const PB = (() => {
     if (!done.length || Math.abs(at(Math.ceil((c0 - off) / step - 1e-9) + done.length - 1) - master) > 1e-9) done.push(now);
     return {whole, done};
   }
-  function extent(data, view) {         // a view's extent: every op's corners over every stored pose (far planes out)
-    const V = VIEWS[view], lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
-    for (const g of groups(data)) for (const b of g.bodies) {
+  function stations(data) {             // each station with its rigs and its brief: what "Go to" frames
+    return (data.stations || []).map((s) => ({id: s.id, groups: [s.id].concat(
+      (data.rigs || []).filter((r) => r.of === s.id).map((r) => r.id),
+      (data.briefs || []).filter((b) => b.of === s.id).map((b) => b.id))}));
+  }
+  const kept = new WeakMap();           // each group's extent in each view, worked out once (the data is only read)
+  function groupExtent(data, g, view) {
+    // A group's extent in a view: every op's corners over every stored pose (far planes out). Only a point on the
+    // outline of the points at its own height can be outermost under any turn or shift: the rest lie between those,
+    // so leaving them out changes no extent. A body that only slides and turns about its z keeps its heights, and
+    // where each of the view's directions reads its group's x and y alone or its z alone (a frame square to the
+    // view), its outline seen from above, at its lowest and its highest, is all that can be outermost. A point far
+    // out (a region open on a side) is kept as it is, so that the far planes leave out only itself.
+    const V = VIEWS[view], lo = [Infinity, Infinity], hi = [-Infinity, -Infinity], R = g.frame.R, o = g.frame.origin;
+    for (const b of g.bodies) {
       const src = b.rides ? g.bodies.find((x) => x.name === b.rides) : b;
       const poses = !moves(data, g) || b.kind === "fixed" ? [STILL]
         : (src.poses || src.angles).map((_, k) => placement(Object.assign({}, g, {shaft: {turns: [1, 1], offset_deg: 0},
             span_turns: 1}), b, 360 * k / g.samples));
-      const P = [];
-      for (const op of b.ops) { if (op.cut) continue; const e = ends(op); if (e) P.push(...e.a, ...e.b); }
-      if (b.wire) P.push(...b.wire);
-      for (const pl of poses) for (const p of P) {
-        const w = mul(g.frame.R, pl.f(p)), x = w[V.u] + g.frame.origin[V.u], y = w[V.v] + g.frame.origin[V.v];
-        if (Math.abs(x) > 5e4 || Math.abs(y) > 5e4) continue;
-        lo[0] = Math.min(lo[0], x); lo[1] = Math.min(lo[1], y); hi[0] = Math.max(hi[0], x); hi[1] = Math.max(hi[1], y);
+      const all = [];
+      for (const op of b.ops) { if (op.cut) continue; const e = ends(op); if (e) all.push(...e.a, ...e.b); }
+      if (b.wire) all.push(...b.wire);
+      let P = all;
+      const near = all.filter((p) => Math.max(Math.abs(p[0]), Math.abs(p[1]), Math.abs(p[2])) <= 5e4);
+      const far = all.filter((p) => Math.max(Math.abs(p[0]), Math.abs(p[1]), Math.abs(p[2])) > 5e4);
+      const rowR = (a) => [0, 1, 2].map((j) => { const c = along3(a); return c[0] * R[0][j] + c[1] * R[1][j] + c[2] * R[2][j]; });
+      const square = [V.u, V.v].every((a) => { const q = rowR(a); return Math.abs(q[2]) < 1e-12 || Math.abs(q[0]) + Math.abs(q[1]) < 1e-12; });
+      if (poses.length > 1 && src.kind === "planar" && square && near.length > 8) {
+        let zl = Infinity, zh = -Infinity;
+        for (const p of near) { zl = Math.min(zl, p[2]); zh = Math.max(zh, p[2]); }
+        P = far.slice();
+        for (const [x, y] of hull(near.map((p) => [p[0], p[1]]))) P.push([x, y, zl], [x, y, zh]);
+      } else if (poses.length > 1) {
+        const level = new Map();
+        P = far.slice();
+        for (const p of near) { if (!level.has(p[2])) level.set(p[2], []); level.get(p[2]).push(p); }
+        for (const [z, L] of level) {
+          if (L.length < 4) { P.push(...L); continue; }
+          for (const [x, y] of hull(L.map((p) => [p[0], p[1]]))) P.push([x, y, z]);
+        }
       }
+      for (const pl of poses) {             // the pose and the frame as one map: two rows and their offsets
+        const t = pl.f([0, 0, 0]), M = pl.M, rows = [V.u, V.v].map((ax) => {
+          if (ax.length === 3) {            // a slanted axis: its row of the frame, then the pose
+            const q = rowR(ax), a = [0, 1, 2].map((j) => q[0] * M[0][j] + q[1] * M[1][j] + q[2] * M[2][j]);
+            return [a[0], a[1], a[2], q[0] * t[0] + q[1] * t[1] + q[2] * t[2] + at(o, ax)];
+          }
+          const [r, sg] = ax, a = [0, 1, 2].map((j) => sg * (R[r][0] * M[0][j] + R[r][1] * M[1][j] + R[r][2] * M[2][j]));
+          return [a[0], a[1], a[2], sg * (R[r][0] * t[0] + R[r][1] * t[1] + R[r][2] * t[2] + o[r])];
+        });
+        const [A, B] = rows;
+        for (const p of P) {
+          const x = A[0] * p[0] + A[1] * p[1] + A[2] * p[2] + A[3], y = B[0] * p[0] + B[1] * p[1] + B[2] * p[2] + B[3];
+          if (Math.abs(x) > 5e4 || Math.abs(y) > 5e4) continue;
+          if (x < lo[0]) lo[0] = x; if (y < lo[1]) lo[1] = y; if (x > hi[0]) hi[0] = x; if (y > hi[1]) hi[1] = y;
+        }
+      }
+    }
+    return {lo, hi};
+  }
+  function extent(data, view, only) {   // a view's extent over every stored pose, of the groups ``only`` names or all
+    const lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
+    for (const g of groups(data)) if (!only || only.includes(g.id)) {
+      if (!kept.has(g)) kept.set(g, {});
+      const K = kept.get(g), E = K[view] || (K[view] = groupExtent(data, g, view));
+      lo[0] = Math.min(lo[0], E.lo[0]); lo[1] = Math.min(lo[1], E.lo[1]);
+      hi[0] = Math.max(hi[0], E.hi[0]); hi[1] = Math.max(hi[1], E.hi[1]);
     }
     return {lo, hi};
   }
@@ -251,14 +397,24 @@ const PB = (() => {
     for (const g of data.briefs || []) for (const b of g.bodies) { const s = state(b, master); if (s) out[g.id + " " + b.name] = s; }
     return out;
   }
-  return {SEG, shapes, zones, point, extent, present, u, groups, traces, trail, VIEWS};
+  return {SEG, shapes, zones, point, extent, present, u, groups, traces, trail, stations, VIEWS, project};
 })();
 if (typeof module !== "undefined") module.exports = PB;
 </script>
 <script id="pb-ui">
 (() => {
   const data = JSON.parse(document.getElementById("pb-data").textContent);
-  const views = ["front", "plan"], cv = {}, box = {};
+  const TITLES = {front: "From the front (the line runs left to right; up is up)",
+                  back: "From the back (the line runs right to left; up is up)",
+                  left: "From the left end (looking along the line, its front on the right; up is up)",
+                  right: "From the right end (looking back along the line, its front on the left; up is up)",
+                  plan: "From above (the line runs left to right; up the page is away from the front)",
+                  below: "From below (the line runs right to left; up the page is away from the front)",
+                  "front-left": "From above, front left (at a slant: the line runs to the right and away)",
+                  "front-right": "From above, front right (at a slant: the line runs to the right and toward you)",
+                  "back-left": "From above, back left (at a slant: the line runs to the left and away)",
+                  "back-right": "From above, back right (at a slant: the line runs to the left and toward you)"};
+  const panes = {a: {view: "front"}, b: {view: "plan"}}, names = Object.keys(panes);
   const period = 360 * data.period_cycles;
   const slider = document.getElementById("pb-master"), readout = document.getElementById("pb-readout");
   const playBtn = document.getElementById("pb-play"), speedSel = document.getElementById("pb-speed");
@@ -268,34 +424,58 @@ if (typeof module !== "undefined") module.exports = PB;
     traceSel.appendChild(o);
   }
   const INK = [150, 20, 120];
+  const gotoSel = document.getElementById("pb-goto"), places = PB.stations(data);
+  for (const st of places) {
+    const o = document.createElement("option"); o.value = st.id; o.textContent = st.id; gotoSel.appendChild(o);
+  }
+  gotoSel.value = "-";
   slider.max = String(period);
-  for (const v of views) {              // each view's extent: every part over every stored pose
-    cv[v] = document.getElementById("pb-" + v);
-    const {lo, hi} = PB.extent(data, v);
-    const pad = 0.04 * Math.max(hi[0] - lo[0], hi[1] - lo[1]);
-    box[v] = {lo: [lo[0] - pad, lo[1] - pad], hi: [hi[0] + pad, hi[1] + pad]};
+  const boxes = {};
+  function boxOf(view) {                // a view's extent, every part over every stored pose, with a margin
+    if (!boxes[view]) {
+      const {lo, hi} = PB.extent(data, view), pad = 0.04 * Math.max(hi[0] - lo[0], hi[1] - lo[1]);
+      boxes[view] = {lo: [lo[0] - pad, lo[1] - pad], hi: [hi[0] + pad, hi[1] + pad]};
+    }
+    return boxes[view];
+  }
+  // each pane: its view, the station it frames (or the whole line), its zoom and centre (drag to pan, wheel or
+  // pinch or the buttons to zoom, double-click or Fit for the whole line)
+  for (const p of names) {
+    const P = panes[p];
+    P.cv = document.getElementById("pb-" + p); P.title = document.getElementById("pb-" + p + "-title");
+    P.sel = document.getElementById("pb-" + p + "-view"); P.sel.value = P.view;
+    P.slant = document.getElementById("pb-" + p + "-slant");   // the painting order's caveat, on a slanted pane only
+    P.framed = null; P.reframe = true;
   }
   const FIXED_ALPHA = 0.4;
-  const layer = document.createElement("canvas");
+  const layer = document.createElement("canvas"), mask = document.createElement("canvas");
   const css = (rgb, a) => `rgba(${Math.round(rgb[0] * 255)},${Math.round(rgb[1] * 255)},${Math.round(rgb[2] * 255)},${a})`;
-  // each view's zoom and centre (drag to pan, wheel or pinch or the buttons to zoom, double-click to fit)
-  const zoom = {};
-  for (const v of views) zoom[v] = {s: 1, c: [(box[v].lo[0] + box[v].hi[0]) / 2, (box[v].lo[1] + box[v].hi[1]) / 2]};
-  function frame(v) {                   // the view's scale (pixels a mm) and its map from mm to pixels
-    const c = cv[v], B = box[v], Z = zoom[v];
+  function frame(P) {                   // the pane's scale (pixels a mm) and its map from mm to pixels
+    const c = P.cv, B = boxOf(P.view), Z = P.zoom;
     const k = Z.s * Math.min(c.width / (B.hi[0] - B.lo[0]), c.height / (B.hi[1] - B.lo[1]));
     return {k, X: (x) => c.width / 2 + (x - Z.c[0]) * k, Y: (y) => c.height / 2 - (y - Z.c[1]) * k};
   }
-  function zoomBy(v, f, px, py) {       // zoom by f about a point of the canvas (pixels), keeping it in place
-    const c = cv[v], Z = zoom[v], F = frame(v), dpr = window.devicePixelRatio || 1;
+  function framing(P) {                 // the zoom that shows the pane's station (its rigs and brief), or the line
+    const B = boxOf(P.view), c = P.cv, whole = {s: 1, c: [(B.lo[0] + B.hi[0]) / 2, (B.lo[1] + B.hi[1]) / 2]};
+    const st = places.find((x) => x.id === P.framed);
+    if (!st) return whole;
+    const {lo, hi} = PB.extent(data, P.view, st.groups), pad = 0.08 * Math.max(hi[0] - lo[0], hi[1] - lo[1]);
+    const w = hi[0] - lo[0] + 2 * pad, h = hi[1] - lo[1] + 2 * pad;
+    if (!(w > 0 && h > 0 && isFinite(w) && isFinite(h))) return whole;
+    const fit = Math.min(c.width / (B.hi[0] - B.lo[0]), c.height / (B.hi[1] - B.lo[1]));
+    return {s: Math.min(64, Math.max(1, Math.min(c.width / w, c.height / h) / fit)), c: [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2]};
+  }
+  function zoomBy(P, f, px, py) {       // zoom by f about a point of the canvas (pixels), keeping it in place
+    const c = P.cv, Z = P.zoom, F = frame(P), dpr = window.devicePixelRatio || 1;
     const x = Z.c[0] + ((px ?? c.width / 2 / dpr) * dpr - c.width / 2) / F.k;
     const y = Z.c[1] - ((py ?? c.height / 2 / dpr) * dpr - c.height / 2) / F.k;
     const s = Math.min(64, Math.max(1, Z.s * f)), r = Z.s / s;
     Z.c = [x + (Z.c[0] - x) * r, y + (Z.c[1] - y) * r]; Z.s = s;
     draw(Number(slider.value));
   }
-  for (const v of views) {
-    const c = cv[v], pts = new Map();
+  const whole = (P) => { P.framed = null; P.reframe = true; draw(Number(slider.value)); };
+  for (const p of names) {
+    const P = panes[p], c = P.cv, pts = new Map();
     let last = null;
     c.addEventListener("pointerdown", (e) => { c.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.offsetX, e.offsetY]); last = null; });
     c.addEventListener("pointermove", (e) => {
@@ -303,43 +483,70 @@ if (typeof module !== "undefined") module.exports = PB;
       const prev = pts.get(e.pointerId); pts.set(e.pointerId, [e.offsetX, e.offsetY]);
       if (pts.size === 2) {               // pinch
         const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
-        if (last) zoomBy(v, d / last, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+        if (last) zoomBy(P, d / last, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
         last = d; return;
       }
-      const F = frame(v), dpr = window.devicePixelRatio || 1;
-      zoom[v].c = [zoom[v].c[0] - (e.offsetX - prev[0]) * dpr / F.k, zoom[v].c[1] + (e.offsetY - prev[1]) * dpr / F.k];
+      const F = frame(P), dpr = window.devicePixelRatio || 1;
+      P.zoom.c = [P.zoom.c[0] - (e.offsetX - prev[0]) * dpr / F.k, P.zoom.c[1] + (e.offsetY - prev[1]) * dpr / F.k];
       draw(Number(slider.value));
     });
     const up = (e) => { pts.delete(e.pointerId); last = null; };
     c.addEventListener("pointerup", up); c.addEventListener("pointercancel", up);
     c.addEventListener("wheel", (e) => { e.preventDefault(); const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1);
-                                                 zoomBy(v, Math.exp(-dy * 0.0015), e.offsetX, e.offsetY); },
+                                                 zoomBy(P, Math.exp(-dy * 0.0015), e.offsetX, e.offsetY); },
                        {passive: false});
-    c.addEventListener("dblclick", () => { zoom[v] = {s: 1, c: [(box[v].lo[0] + box[v].hi[0]) / 2, (box[v].lo[1] + box[v].hi[1]) / 2]};
-                                           draw(Number(slider.value)); });
-    document.getElementById("pb-" + v + "-in").addEventListener("click", () => zoomBy(v, 2));
-    document.getElementById("pb-" + v + "-out").addEventListener("click", () => zoomBy(v, 0.5));
-    document.getElementById("pb-" + v + "-fit").addEventListener("click", () => { zoom[v].s = 1;
-      zoom[v].c = [(box[v].lo[0] + box[v].hi[0]) / 2, (box[v].lo[1] + box[v].hi[1]) / 2]; draw(Number(slider.value)); });
+    c.addEventListener("dblclick", () => whole(P));
+    document.getElementById("pb-" + p + "-in").addEventListener("click", () => zoomBy(P, 2));
+    document.getElementById("pb-" + p + "-out").addEventListener("click", () => zoomBy(P, 0.5));
+    document.getElementById("pb-" + p + "-fit").addEventListener("click", () => whole(P));
+    P.sel.addEventListener("change", () => {   // another view: the station it framed, or the line, framed again
+      P.view = P.sel.value; P.reframe = true; draw(Number(slider.value)); });
   }
+  gotoSel.addEventListener("change", () => {   // frame a station (its rigs and brief too) in both panes, or the line
+    const st = places.find((x) => x.id === gotoSel.value);
+    for (const p of names) { panes[p].framed = st ? st.id : null; panes[p].reframe = true; }
+    gotoSel.value = "-";                  // back to its prompt, so that any choice, the same again too, acts
+    draw(Number(slider.value));
+  });
   function draw(master) {
-    for (const v of views) {
-      const c = cv[v], B = box[v], dpr = window.devicePixelRatio || 1;
+    for (const p of names) {
+      const P = panes[p], v = P.view, c = P.cv, B = boxOf(v), dpr = window.devicePixelRatio || 1;
       const w = c.clientWidth, h = Math.min(w * (B.hi[1] - B.lo[1]) / (B.hi[0] - B.lo[0]), window.innerHeight * 0.7);
       if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
         c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = h + "px";
       }
-      const {X, Y} = frame(v);
+      if (P.reframe) { P.zoom = framing(P); P.reframe = false; P.title.textContent = TITLES[v]; P.slant.hidden = !PB.VIEWS[v].slant; }
+      const {X, Y} = frame(P), st = places.find((x) => x.id === P.framed);
+      const only = st && (v === "left" || v === "right") ? st.groups : undefined;   // from an end, the station alone
       const ctx = c.getContext("2d");
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, c.width, c.height);
       ctx.lineJoin = "round";
-      for (const s of PB.shapes(data, v, master)) {
+      for (const s of PB.shapes(data, v, master, only)) {
         const path = new Path2D();
         s.pts.forEach(([x, y], i) => i ? path.lineTo(X(x), Y(y)) : path.moveTo(X(x), Y(y)));
         if (s.kind === "wire") { ctx.strokeStyle = css(s.rgb, s.alpha); ctx.lineWidth = 1.5 * dpr; ctx.stroke(path); continue; }
         path.closePath();
         const a = s.fixed ? FIXED_ALPHA * s.alpha : s.alpha;   // fixed parts see-through, so what moves behind shows
+        const wins = s.windows || [], poly = (Q) => { const q = new Path2D();
+          Q.forEach(([x, y], i) => i ? q.lineTo(X(x), Y(y)) : q.moveTo(X(x), Y(y))); q.closePath(); return q; };
+        if (s.pieces || wins.length) {    // at a slant: a cam's faces and sides as one, the cuts seen through erased
+          if (layer.width !== c.width || layer.height !== c.height) { layer.width = c.width; layer.height = c.height; }
+          const L = layer.getContext("2d");
+          L.clearRect(0, 0, layer.width, layer.height); L.lineJoin = "round";
+          L.fillStyle = css(s.rgb, s.pieces ? 1 : a);
+          for (const q of s.pieces || [s.pts]) L.fill(poly(q));
+          L.strokeStyle = css(s.rgb.map((q) => q * 0.55), s.pieces ? 1 : Math.min(1, a + 0.2)); L.lineWidth = 0.75 * dpr;
+          for (const q of s.pieces ? s.pieces.slice(0, 2) : [s.pts]) L.stroke(poly(q));
+          for (const [p1, p2] of wins) {
+            if (mask.width !== c.width || mask.height !== c.height) { mask.width = c.width; mask.height = c.height; }
+            const K = mask.getContext("2d");
+            K.globalCompositeOperation = "source-over"; K.clearRect(0, 0, mask.width, mask.height); K.fill(poly(p1)); K.globalCompositeOperation = "destination-in"; K.fill(poly(p2));
+            L.globalCompositeOperation = "destination-out"; L.drawImage(mask, 0, 0); L.globalCompositeOperation = "source-over";
+          }
+          ctx.globalAlpha = s.pieces ? a : 1; ctx.drawImage(layer, 0, 0); ctx.globalAlpha = 1;
+          continue;
+        }
         let target = ctx;
         if (s.holes.length) {             // a face with holes: drawn on a layer of its own, the holes erased from it
           layer.width = c.width; layer.height = c.height;
@@ -359,15 +566,17 @@ if (typeof module !== "undefined") module.exports = PB;
           ctx.drawImage(layer, 0, 0);
         }
       }
-      if (traceSel.value) {               // the traced point: its whole path faint, its trail this cycle, where it is
-        const T = PB.trail(data, ...JSON.parse(traceSel.value), master), V = PB.VIEWS[v];
-        const line = (P, closed) => { const q = new Path2D();
-          P.forEach((w, i) => i ? q.lineTo(X(w[V.u]), Y(w[V.v])) : q.moveTo(X(w[V.u]), Y(w[V.v])));
+      const traced = traceSel.value ? JSON.parse(traceSel.value) : null;
+      if (traced && (!only || only.includes(traced[0]))) {   // the traced point: its whole path faint, its trail
+        // this cycle, where it is (from an end with one station alone, only that station's own)
+        const T = PB.trail(data, ...traced, master);
+        const line = (Q, closed) => { const q = new Path2D();
+          Q.forEach((w, i) => { const [x, y] = PB.project(v, w); i ? q.lineTo(X(x), Y(y)) : q.moveTo(X(x), Y(y)); });
           if (closed) q.closePath(); return q; };
         ctx.strokeStyle = `rgba(${INK},0.3)`; ctx.lineWidth = 1.5 * dpr; ctx.stroke(line(T.whole, true));
         ctx.strokeStyle = `rgba(${INK},0.95)`; ctx.lineWidth = 2.5 * dpr; ctx.stroke(line(T.done, false));
-        const w = T.done[T.done.length - 1];
-        ctx.fillStyle = `rgb(${INK})`; ctx.beginPath(); ctx.arc(X(w[V.u]), Y(w[V.v]), 4 * dpr, 0, 2 * Math.PI); ctx.fill();
+        const [x, y] = PB.project(v, T.done[T.done.length - 1]);
+        ctx.fillStyle = `rgb(${INK})`; ctx.beginPath(); ctx.arc(X(x), Y(y), 4 * dpr, 0, 2 * Math.PI); ctx.fill();
       }
     }
     const cyc = Math.min(Math.floor(master / 360), data.period_cycles - 1), deg = master - 360 * cyc;
