@@ -44,16 +44,14 @@ no shading or perspective; nearer parts are painted over farther ones.</p>
 <button id="pb-a-in" type="button">+</button><button id="pb-a-out" type="button">&minus;</button>
 <button id="pb-a-fit" type="button">Fit</button> <span class="note">drag to move; wheel or pinch to zoom</span></div>
 <p id="pb-a-slant" class="note" hidden>At a slant, parts are painted by the depth of their middles; where a long part
-and a short one overlap closely, the order can be wrong. At a slant, a slot open at an edge or made of several cuts is
-drawn closed; the flat views show it.</p>
+and a short one overlap closely, the order can be wrong.</p>
 <canvas id="pb-a" aria-label="the line in this pane's view"></canvas>
 <h2 id="pb-b-title">From above (the line runs left to right; up the page is away from the front)</h2>
 <div class="zoom"><label>View <select id="pb-b-view" aria-label="the view in this pane"><option value="front">front</option><option value="back">back</option><option value="left">left end</option><option value="right">right end</option><option value="plan" selected>above</option><option value="below">below</option><option value="front-left">above, front left</option><option value="front-right">above, front right</option><option value="back-left">above, back left</option><option value="back-right">above, back right</option></select></label>
 <button id="pb-b-in" type="button">+</button><button id="pb-b-out" type="button">&minus;</button>
 <button id="pb-b-fit" type="button">Fit</button> <span class="note">drag to move; wheel or pinch to zoom</span></div>
 <p id="pb-b-slant" class="note" hidden>At a slant, parts are painted by the depth of their middles; where a long part
-and a short one overlap closely, the order can be wrong. At a slant, a slot open at an edge or made of several cuts is
-drawn closed; the flat views show it.</p>
+and a short one overlap closely, the order can be wrong.</p>
 <canvas id="pb-b" aria-label="the line in this pane's view"></canvas>
 <h2>The brief's zones</h2><p class="legend">A zone is<span style="background:#33b84d"></span>green while it is met,<span style="background:#d93333"></span>red while the part is in it but it is not met, and<span style="background:#9e9e9e"></span>grey otherwise, as in the FreeCAD model. The zones show position, angle and holds for the nominal design. The mean position tolerance, a monotone carry between targets, the carry&#x27;s level and straightness, dynamics limits, pressure and transmission angles, and robustness on mis-built copies are not shown: see the report of the design.</p>
 <h2>What a view leaves out</h2>
@@ -61,9 +59,8 @@ drawn closed; the flat views show it.</p>
 <li>Each pane can be turned to the line's front, back, either end, above or below, on the same clock. From an end
 the stations stand one behind another, nearer painted over farther; with Go to, an end view draws that station alone
 (its rigs and brief too), which shows its timing.</li>
-<li>Four views look from above at a corner, at a slant. There a hole right through a part, wholly inside it and clear
-of other cuts, is seen through where its two ends line up; a slot open at an edge or made of several cuts is drawn
-closed there, and the flat views show it.</li>
+<li>Four views look from above at a corner, at a slant. There a part with cuts is drawn as its face, every cut on its
+depth taken out, carried through its depth: slots and holes are seen through where they would be.</li>
 <li>A part seen face on shows its true outline, with the holes that run right through it (a blind hole or a
 counterbore is not drawn); seen edge on, the outline of its whole depth; a round part is drawn with 72 sides.</li>
 <li>No hidden lines are removed beyond painting nearer parts over farther ones; there is no shading or perspective.
@@ -130,6 +127,68 @@ const PB = (() => {
         && within(flat2(c), outline)));
     }
     return seen.get(op);
+  }
+  function cutsAt(P, Q, polys) {        // where a segment meets the edges of other outlines, as shares of its length
+    const d = [Q[0] - P[0], Q[1] - P[1]], L2 = d[0] * d[0] + d[1] * d[1], out = [0, 1];
+    const cr = (a, b) => a[0] * b[1] - a[1] * b[0];
+    for (const C of polys) for (let j = 0; j < C.length; j++) {
+      const R = C[j], S = C[(j + 1) % C.length], e = [S[0] - R[0], S[1] - R[1]], w = [R[0] - P[0], R[1] - P[1]];
+      const den = cr(d, e);
+      if (Math.abs(den) > 1e-12) {
+        const s = cr(w, e) / den, u = cr(w, d) / den;
+        if (s > -1e-12 && s < 1 + 1e-12 && u > -1e-12 && u < 1 + 1e-12) out.push(Math.min(1, Math.max(0, s)));
+      } else if (Math.abs(cr(w, d)) <= 1e-9 * Math.sqrt(L2)) {   // along the same line: where its ends fall
+        for (const X of [R, S]) { const s = ((X[0] - P[0]) * d[0] + (X[1] - P[1]) * d[1]) / L2; if (s > 0 && s < 1) out.push(s); }
+      }
+    }
+    out.sort((a, b) => a - b);
+    return out.filter((s, i) => i === 0 || s - out[i - 1] > 1e-9);
+  }
+  const plans = new WeakMap();          // each part's sweep at a slant, in its own plane (its shape alone decides)
+  function sweepPlan(b, op) {
+    // A part with a cut the two-outline method cannot draw exactly: every cut near it on its depth, the stretches of
+    // its depth over which the same cuts span it, and for each stretch the true edges of its face less those cuts.
+    // Swept through a stretch, the part covers its face less the cuts at the stretch's two ends and the band each of
+    // those edges traces between them, and nothing else: so those edges and ends are all the drawing needs.
+    if (plans.has(op)) return plans.get(op);
+    let plan = null;
+    if (op.op !== "rod" && ends(op)) {
+      const flat2 = (o) => ends(o).a.map(([x, y]) => [x, y]), F = flat2(op), [z0, z1] = op.z, exact = seenThrough(b, op);
+      const over = b.ops.filter((c) => c.cut && c.op !== "rod" && ends(c) && (c.group === undefined || c.group === op.group)
+        && c.z[1] > z0 + 1e-6 && c.z[0] < z1 - 1e-6 && !apart(flat2(c), F));
+      if (over.some((c) => !exact.includes(c))) {
+        const share = (z) => Math.min(1, Math.max(0, (z - z0) / (z1 - z0)));
+        const cuts = over.map((c) => ({op: c, poly: flat2(c), t: [share(c.z[0]), share(c.z[1])]}));
+        const T = [...new Set([0, 1].concat(...cuts.map((c) => c.t)))].sort((a, b) => a - b);
+        const spans = [];
+        for (let k = 0; k + 1 < T.length; k++) {
+          if (T[k + 1] - T[k] <= 1e-9) continue;
+          const on = cuts.filter((c) => c.t[0] <= T[k] + 1e-9 && c.t[1] >= T[k + 1] - 1e-9);
+          const inM = (p) => inside(p, F) && !on.some((c) => inside(p, c.poly));
+          const polys = [F].concat(on.map((c) => c.poly)), runs = [];
+          polys.forEach((P, pi) => P.forEach((A, j) => {
+            const B = P[(j + 1) % P.length], d = [B[0] - A[0], B[1] - A[1]], len = Math.hypot(d[0], d[1]);
+            if (len <= 1e-12) return;
+            const nn = [-d[1] / len * 1e-6, d[0] / len * 1e-6], ss = cutsAt(A, B, polys.filter((_, q) => q !== pi));
+            let run = null;
+            for (let i = 0; i + 1 < ss.length; i++) {
+              const m = (ss[i] + ss[i + 1]) / 2, x = A[0] + m * d[0], y = A[1] + m * d[1];
+              const edge = inM([x + nn[0], y + nn[1]]) !== inM([x - nn[0], y - nn[1]]);   // material on one side only
+              if (edge && run) run[1] = ss[i + 1];
+              else if (edge) run = [ss[i], ss[i + 1]];
+              if ((!edge || i + 2 === ss.length) && run) {
+                runs.push([[A[0] + run[0] * d[0], A[1] + run[0] * d[1]], [A[0] + run[1] * d[0], A[1] + run[1] * d[1]]]);
+                run = null;
+              }
+            }
+          }));
+          spans.push({t: [T[k], T[k + 1]], on: on.map((c) => cuts.indexOf(c)), runs});
+        }
+        plan = {z0, z1, cuts, spans};
+      }
+    }
+    plans.set(op, plan);
+    return plan;
   }
   function convex(P) {                  // a plate's outline turns one way all round (no dwell, no notch)
     let pos = 0, neg = 0;
@@ -282,12 +341,22 @@ const PB = (() => {
                 [q.A[j], q.A[(j + 1) % n_], q.AB[n_ + (j + 1) % n_], q.AB[n_ + j]].map(uv)));
             }
             // a cut is seen through where its outlines at the solid's two faces overlap, which is exact for one
-            // convex hole through the whole depth, wholly inside the solid and clear of every other cut on it; a slot
-            // open at an edge or made of several cuts is drawn closed at a slant (the pane says so)
-            shape.windows = seenThrough(b, q.op).map((c) => {
+            // convex hole through the whole depth, wholly inside the solid and clear of every other cut on it
+            const exact = seenThrough(b, q.op);
+            shape.windows = exact.map((c) => {
               const e = ends(Object.assign({}, c, {z: q.op.z}));
               return [e.a.map(put).map(uv), e.b.map(put).map(uv)];
             });
+            // any other cut near it on its depth (a slot open at an edge, or made of several cuts): the part swept
+            // through its depth along the eye's direction (``sweepPlan``), its outlines placed on the page at its near face
+            const plan = sweepPlan(b, q.op);
+            if (plan) {
+              const n_ = q.A.length, A0 = uv(q.A[0]), B0 = uv(q.AB[n_]), at0 = ([x, y]) => uv(put([x, y, plan.z0]));
+              shape.kind = "sweep"; shape.windows = []; delete shape.pieces;
+              shape.sweep = {face: q.A.map(uv), offset: [B0[0] - A0[0], B0[1] - A0[1]],
+                             cuts: plan.cuts.map((c) => ({poly: c.poly.map(at0), t: c.t})),
+                             spans: plan.spans.map((sp) => ({t: sp.t, on: sp.on, edges: sp.runs.map((r) => r.map(at0))}))};
+            }
           }
           out.push(shape);
         }
@@ -448,7 +517,7 @@ if (typeof module !== "undefined") module.exports = PB;
     P.framed = null; P.reframe = true;
   }
   const FIXED_ALPHA = 0.4;
-  const layer = document.createElement("canvas"), mask = document.createElement("canvas");
+  const layer = document.createElement("canvas"), mask = document.createElement("canvas"), slice = document.createElement("canvas");
   const css = (rgb, a) => `rgba(${Math.round(rgb[0] * 255)},${Math.round(rgb[1] * 255)},${Math.round(rgb[2] * 255)},${a})`;
   function frame(P) {                   // the pane's scale (pixels a mm) and its map from mm to pixels
     const c = P.cv, B = boxOf(P.view), Z = P.zoom;
@@ -508,6 +577,52 @@ if (typeof module !== "undefined") module.exports = PB;
     gotoSel.value = "-";                  // back to its prompt, so that any choice, the same again too, acts
     draw(Number(slider.value));
   });
+  function sweep(ctx, s, X, Y, k, dpr, a) {
+    // a part with slots at a slant: for each stretch of its depth, its face less the cuts there at the stretch's near
+    // end, and the band each of its true edges traces through the stretch (which covers the far end too); drawn only
+    // within the pane, at the part's see-through, its true edges stroked at its two faces
+    const S = s.sweep, W = ctx.canvas.width, H = ctx.canvas.height, dx = S.offset[0] * k, dy = -S.offset[1] * k;
+    const F = S.face.map(([x, y]) => [X(x), Y(y)]), xs = F.map((p) => p[0]), ys = F.map((p) => p[1]);
+    const x0 = Math.max(0, Math.floor(Math.min(...xs, ...xs.map((x) => x + dx))) - 2);
+    const y0 = Math.max(0, Math.floor(Math.min(...ys, ...ys.map((y) => y + dy))) - 2);
+    const x1 = Math.min(W, Math.ceil(Math.max(...xs, ...xs.map((x) => x + dx))) + 2);
+    const y1 = Math.min(H, Math.ceil(Math.max(...ys, ...ys.map((y) => y + dy))) + 2);
+    if (x1 <= x0 || y1 <= y0) return;               // nothing of it in the pane
+    for (const c of [layer, slice]) if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+    const L = layer.getContext("2d"), Q = slice.getContext("2d"), w = x1 - x0, h = y1 - y0;
+    L.globalCompositeOperation = "source-over"; L.clearRect(x0, y0, w, h);
+    const path = (P, t, q = new Path2D()) => {
+      P.forEach(([x, y], i) => i ? q.lineTo(X(x) + t * dx, Y(y) + t * dy) : q.moveTo(X(x) + t * dx, Y(y) + t * dy));
+      q.closePath(); return q; };
+    L.fillStyle = css(s.rgb, 1);
+    for (const sp of S.spans) {
+      for (const t of sp.t.slice(0, 1)) {           // its face less the cuts of this stretch, at its near end
+        Q.globalCompositeOperation = "source-over"; Q.clearRect(x0, y0, w, h);
+        Q.fillStyle = css(s.rgb, 1); Q.fill(path(S.face, t));
+        Q.globalCompositeOperation = "destination-out";
+        for (const i of sp.on) Q.fill(path(S.cuts[i].poly, t));
+        L.drawImage(slice, x0, y0, w, h, x0, y0, w, h);
+      }
+      const bands = new Path2D();                   // the band each true edge traces through the stretch
+      for (let [p, q] of sp.edges) {
+        const [t0, t1] = sp.t;
+        // each band wound the same way round, so that where bands overlap the fill adds and never cancels
+        if ((X(q[0]) - X(p[0])) * dy - (Y(q[1]) - Y(p[1])) * dx < 0) [p, q] = [q, p];
+        bands.moveTo(X(p[0]) + t0 * dx, Y(p[1]) + t0 * dy); bands.lineTo(X(q[0]) + t0 * dx, Y(q[1]) + t0 * dy);
+        bands.lineTo(X(q[0]) + t1 * dx, Y(q[1]) + t1 * dy); bands.lineTo(X(p[0]) + t1 * dx, Y(p[1]) + t1 * dy);
+        bands.closePath();
+      }
+      L.fill(bands);
+    }
+    L.strokeStyle = css(s.rgb.map((q) => q * 0.55), 1); L.lineWidth = 0.75 * dpr; L.lineJoin = "round"; L.lineCap = "round";
+    for (const [sp, t] of [[S.spans[0], 0], [S.spans[S.spans.length - 1], 1]]) {   // its true edges at its two faces
+      const edges = new Path2D();
+      for (const [p, q] of sp.edges) { edges.moveTo(X(p[0]) + t * dx, Y(p[1]) + t * dy); edges.lineTo(X(q[0]) + t * dx, Y(q[1]) + t * dy); }
+      L.stroke(edges);
+    }
+    ctx.globalAlpha = a; ctx.drawImage(layer, x0, y0, w, h, x0, y0, w, h); ctx.globalAlpha = 1;
+  }
+  window.PBPaint = {sweep};              // for measuring the drawing by hand (tools/measure_slant_cuts.py)
   function draw(master) {
     for (const p of names) {
       const P = panes[p], v = P.view, c = P.cv, B = boxOf(v), dpr = window.devicePixelRatio || 1;
@@ -516,7 +631,7 @@ if (typeof module !== "undefined") module.exports = PB;
         c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = h + "px";
       }
       if (P.reframe) { P.zoom = framing(P); P.reframe = false; P.title.textContent = TITLES[v]; P.slant.hidden = !PB.VIEWS[v].slant; }
-      const {X, Y} = frame(P), st = places.find((x) => x.id === P.framed);
+      const {X, Y, k} = frame(P), st = places.find((x) => x.id === P.framed);
       const only = st && (v === "left" || v === "right") ? st.groups : undefined;   // from an end, the station alone
       const ctx = c.getContext("2d");
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -530,6 +645,7 @@ if (typeof module !== "undefined") module.exports = PB;
         const a = s.fixed ? FIXED_ALPHA * s.alpha : s.alpha;   // fixed parts see-through, so what moves behind shows
         const wins = s.windows || [], poly = (Q) => { const q = new Path2D();
           Q.forEach(([x, y], i) => i ? q.lineTo(X(x), Y(y)) : q.moveTo(X(x), Y(y))); q.closePath(); return q; };
+        if (s.sweep) { sweep(ctx, s, X, Y, k, dpr, a); continue; }
         if (s.pieces || wins.length) {    // at a slant: a cam's faces and sides as one, the cuts seen through erased
           if (layer.width !== c.width || layer.height !== c.height) { layer.width = c.width; layer.height = c.height; }
           const L = layer.getContext("2d");
