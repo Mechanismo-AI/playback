@@ -15,6 +15,7 @@ p { margin: 0 0 16px; }
 ul { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--rule); }
 li { padding: 12px 0; border-bottom: 1px solid var(--rule); }
 a { color: #1f5fa8; font-weight: 600; }
+.points { border-top: none; margin: 0 0 16px; } .points li { border-bottom: none; padding: 4px 0; }
 </style>
 </head>
 <body>
@@ -22,6 +23,25 @@ a { color: #1f5fa8; font-weight: 600; }
 <h1>Mechanismo: playback</h1>
 <p>Production lines and single mechanisms designed by the Mechanismo generator, played in the browser from the same
 data as their FreeCAD models.</p>
+
+<h2>How they were made</h2>
+<p>Every mechanism here was designed by code from a written brief: where a part must be carried, how far, how still
+it must be held and for how long, how much space there is, and how accurately it will be built. The brief goes to a
+library of nine mechanism families. Each family has its own design search and its own independent check, written a
+different way from the search. Only designs that pass their check, fit the space, and still meet the brief on at
+least 90% of simulated copies built with the stated errors are kept, and the smallest of those is picked. A line is
+then checked as a whole: its timing, every hand-over, collisions through the full cycle, and 100 mis-built copies of
+the entire line.</p>
+<p><strong>No AI model is asked to make a mechanism.</strong> The designs come from geometry and calculation, not
+from a model's guess. That makes them:</p>
+<ul class="points">
+<li><strong>Checkable.</strong> Every design comes with the measurements its checks made, and every page here is
+checked against its FreeCAD model.</li>
+<li><strong>Repeatable.</strong> The same brief gives the same design. A line regenerated from its brief came out the
+same, byte for byte.</li>
+<li><strong>Honest about failure.</strong> A brief that no design meets gets no design, and the reason is
+recorded.</li>
+</ul>
 
 <h2>Lines</h2>
 <ul>
