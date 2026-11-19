@@ -639,16 +639,20 @@ if (typeof module !== "undefined") module.exports = PB;
 <script id="pb-ui">
 (() => {
   const data = JSON.parse(document.getElementById("pb-data").textContent);
-  const TITLES = {front: "From the front (the line runs left to right; up is up)",
-                  back: "From the back (the line runs right to left; up is up)",
-                  left: "From the left end (looking along the line, its front on the right; up is up)",
-                  right: "From the right end (looking back along the line, its front on the left; up is up)",
-                  plan: "From above (the line runs left to right; up the page is away from the front)",
-                  below: "From below (the line runs right to left; up the page is away from the front)",
-                  "front-left": "From above, front left (at a slant: the line runs to the right and away)",
-                  "front-right": "From above, front right (at a slant: the line runs to the right and toward you)",
-                  "back-left": "From above, back left (at a slant: the line runs to the left and away)",
-                  "back-right": "From above, back right (at a slant: the line runs to the left and toward you)"};
+  // one design on its own (freecad_line.build_single: one station with its Params sheet, no nests) is worded as a
+  // design, along its own x axis; a line as a line (freecad_playback.titles, the same words)
+  const one = data.stations.length === 1 && "params" in data && !(data.nests || []).length;
+  const L = one ? "the design's x axis" : "the line", Lo = one ? "its x axis" : "the line", END = one ? "" : " end";
+  const TITLES = {front: `From the front (${L} runs left to right; up is up)`,
+                  back: `From the back (${L} runs right to left; up is up)`,
+                  left: `From the left${END} (looking along ${Lo}, its front on the right; up is up)`,
+                  right: `From the right${END} (looking back along ${Lo}, its front on the left; up is up)`,
+                  plan: `From above (${L} runs left to right; up the page is away from the front)`,
+                  below: `From below (${L} runs right to left; up the page is away from the front)`,
+                  "front-left": `From above, front left (at a slant: ${L} runs to the right and away)`,
+                  "front-right": `From above, front right (at a slant: ${L} runs to the right and toward you)`,
+                  "back-left": `From above, back left (at a slant: ${L} runs to the left and away)`,
+                  "back-right": `From above, back right (at a slant: ${L} runs to the left and toward you)`};
   const panes = {a: {view: "front"}, b: {view: "plan"}}, names = Object.keys(panes);
   const period = 360 * data.period_cycles;
   const slider = document.getElementById("pb-master"), readout = document.getElementById("pb-readout");

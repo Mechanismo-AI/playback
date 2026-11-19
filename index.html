@@ -9,23 +9,86 @@
 body { margin: 0; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
 main { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
 h1 { font-size: 1.4rem; margin: 0 0 8px; }
+h2 { font-size: 1.1rem; margin: 28px 0 8px; }
 p { margin: 0 0 16px; }
 .note { color: var(--muted); font-size: 0.92rem; }
 ul { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--rule); }
 li { padding: 12px 0; border-bottom: 1px solid var(--rule); }
 a { color: #1f5fa8; font-weight: 600; }
+.points { border-top: none; margin: 0 0 16px; } .points li { border-bottom: none; padding: 4px 0; }
 </style>
 </head>
 <body>
 <main>
 <h1>Mechanismo: playback</h1>
-<p>Production lines of mechanisms designed by the Mechanismo generator, played in the browser from the same data
-as their FreeCAD models.</p>
+<p>Production lines and single mechanisms designed by the Mechanismo generator, played in the browser from the same
+data as their FreeCAD models.</p>
+
+<h2>How they were made</h2>
+<p>Every mechanism here was designed by code from a written brief: where a part must be carried, how far, how still
+it must be held and for how long, how much space there is, and how accurately it will be built. The brief goes to a
+library of nine mechanism families. Each family has its own design search and its own independent check, written a
+different way from the search. Only designs that pass their check, fit the space, and still meet the brief on at
+least 90% of simulated copies built with the stated errors are kept, and the smallest of those is picked. A line is
+then checked as a whole: its timing, every hand-over, collisions through the full cycle, and 100 mis-built copies of
+the entire line.</p>
+<p><strong>No AI model is asked to make a mechanism.</strong> The designs come from geometry and calculation, not
+from a model's guess. That makes them:</p>
+<ul class="points">
+<li><strong>Checkable.</strong> Every design comes with the measurements its checks made, and every page here is
+checked against its FreeCAD model.</li>
+<li><strong>Repeatable.</strong> The same brief gives the same design. A line regenerated from its brief came out the
+same, byte for byte.</li>
+<li><strong>Honest about failure.</strong> A brief that no design meets gets no design, and the reason is
+recorded.</li>
+</ul>
+
+<h2>Lines</h2>
 <ul>
+<li><a href="puck-line.html">The puck line</a><br>
+<span class="note">Three stations on one 2 s cycle carry a 25 mm puck between two fixed nests: a plate cam brings it
+in, a barrel cam carries it past a label head, and a slider-crank takes it out.</span></li>
+<li><a href="five-station-line.html">Test line A: five stations</a><br>
+<span class="note">The puck line with two label stops: a plate cam, three barrel cams and a slider-crank, handing the
+puck on through four nests.</span></li>
 <li><a href="index-table-line.html">Test line B: an index-table line</a><br>
 <span class="note">A plate cam brings each part in, a Geneva wheel indexes the table, and a slider-crank takes the
 part out.</span></li>
+<li><a href="puck-line-pitch-140.html">The puck line, nests 140 mm apart</a><br>
+<span class="note">The puck line regenerated with its nests 20 mm farther apart.</span></li>
+<li><a href="puck-line-30mm-puck.html">The puck line, for a 30 mm puck</a><br>
+<span class="note">The puck line regenerated for a larger puck.</span></li>
+<li><a href="everything-line.html">The everything line</a><br>
+<span class="note">Nine stations on one 1.5 s cycle, each brief written to draw a different family, so that one line
+uses every family the library has.</span></li>
 </ul>
+
+<h2>Single mechanisms</h2>
+<ul>
+<li><a href="puck-transfer-rocker-cam.html">The puck transfer: a rocker cam</a><br>
+<span class="note">One of the two designs for the puck transfer, the brief written for the first printed build.</span></li>
+<li><a href="puck-transfer-barrel-cam.html">The puck transfer: a barrel cam</a><br>
+<span class="note">The other design for the puck transfer.</span></li>
+</ul>
+<p class="note">The project's first designs, each for a brief of its own:</p>
+<ul>
+<li><a href="early-dwell-station-linkage.html">The dwell station: a dwell linkage</a><br>
+<span class="note">Holds a carried point still within 0.3 mm at a labelling station for 50 degrees of the cycle, while the machine keeps turning.</span></li>
+<li><a href="early-gap-transfer-slider-crank.html">The gap transfer: a slider-crank</a><br>
+<span class="note">Lifts a part off one belt, carries it level across a 260 mm gap and sets it down on the next.</span></li>
+<li><a href="early-tabletop-transfer-fivebar.html">The tabletop transfer: a geared five-bar</a> &middot;
+<a href="early-tabletop-transfer-fourbar.html">a four-bar</a><br>
+<span class="note">Two designs for one brief: a 50 by 10 mm carrier on a tabletop demonstrator.</span></li>
+</ul>
+<p class="note">One design of every family, each chosen for one station of the everything line:</p>
+<ul>
+<li><a href="design-fourbar.html">Four-bar</a> &middot; <a href="design-slider-crank.html">Slider-crank</a> &middot;
+<a href="design-geared-fivebar.html">Geared five-bar</a> &middot; <a href="design-dwell-linkage.html">Dwell linkage</a></li>
+<li><a href="design-plate-cam.html">Plate cam</a> &middot; <a href="design-rocker-cam.html">Rocker cam</a> &middot;
+<a href="design-barrel-cam.html">Barrel cam</a></li>
+<li><a href="design-geneva.html">Geneva drive</a> &middot; <a href="design-cam-indexer.html">Cam indexer</a></li>
+</ul>
+
 <p class="note">Each page shows only what its model's data holds: from the front, the back, either end, above or
 below, or from above at a corner, with no shading or perspective. The corner views show what is in front, as the
 model is built, and leave out the base boards so that the mechanisms show. It is for looking: the FreeCAD model stays
