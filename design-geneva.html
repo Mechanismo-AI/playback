@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Geneva drive: playback</title>
 <style>
-:root { color-scheme: light; --ink: #1d2327; --muted: #5b6770; --rule: #d8dde1; --bg: #fbfbfa; }
+:root { color-scheme: dark; --ink: #e6e8ea; --muted: #a3adb5; --rule: #3a4248; --bg: #000; }
 * { box-sizing: border-box; }
 body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
 main { max-width: 1100px; margin: 0 auto; padding: 16px; }
@@ -17,7 +17,7 @@ p, li { color: var(--ink); }
             align-items: center; border-bottom: 1px solid var(--rule); z-index: 1; }
 .controls input[type=range] { flex: 1 1 260px; }
 button, select { font: inherit; padding: 4px 12px; }
-canvas { width: 100%; display: block; background: #fff; outline: 1px solid var(--rule); border-radius: 4px;
+canvas { width: 100%; display: block; background: #000; outline: 1px solid var(--rule); border-radius: 4px;
          touch-action: none; cursor: grab; }
 .zoom { margin: 0 0 6px; } .zoom button { min-width: 2.4em; }
 .legend span { display: inline-block; width: 0.9em; height: 0.9em; border-radius: 2px; vertical-align: -0.1em; margin: 0 4px 0 10px; }
@@ -243,8 +243,8 @@ const PB = (() => {
   // class's axis the depth is cut into stretches over which the same primitives span it; for each stretch, its face
   // (the region left, a point in it by the rule above) at both its ends, and its sides: each piece of a primitive's
   // outline with material on one side only. A surface inside the solid lies behind the solid's outside along the eye's
-  // line, so the nearest surface at each pixel is the body as built. A cut along another axis than a primitive's is not
-  // drawn this way: the body is marked (``odd``) and the check refuses it.
+  // line, so the nearest surface at each pixel is the body as built. A cut along another axis than a primitive's acts
+  // only on its own class: the body is marked (``odd``), and the page says such a cut is not drawn.
   const FIXED_ALPHA = 0.4;              // a fixed part (not a brief's) is drawn see-through, so what moves behind shows
   const solids = new WeakMap();
   function member(act, ins) {           // a point is in the body's solid, given which primitives it is in
