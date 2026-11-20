@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>everything-line-v1: playback</title>
 <style>
-:root { color-scheme: light; --ink: #1d2327; --muted: #5b6770; --rule: #d8dde1; --bg: #fbfbfa; }
+:root { color-scheme: dark; --ink: #e6e8ea; --muted: #a3adb5; --rule: #3a4248; --bg: #000; }
 * { box-sizing: border-box; }
 body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
 main { max-width: 1100px; margin: 0 auto; padding: 16px; }
@@ -17,7 +17,7 @@ p, li { color: var(--ink); }
             align-items: center; border-bottom: 1px solid var(--rule); z-index: 1; }
 .controls input[type=range] { flex: 1 1 260px; }
 button, select { font: inherit; padding: 4px 12px; }
-canvas { width: 100%; display: block; background: #fff; outline: 1px solid var(--rule); border-radius: 4px;
+canvas { width: 100%; display: block; background: #000; outline: 1px solid var(--rule); border-radius: 4px;
          touch-action: none; cursor: grab; }
 .zoom { margin: 0 0 6px; } .zoom button { min-width: 2.4em; }
 .legend span { display: inline-block; width: 0.9em; height: 0.9em; border-radius: 2px; vertical-align: -0.1em; margin: 0 4px 0 10px; }
@@ -26,7 +26,7 @@ canvas { width: 100%; display: block; background: #fff; outline: 1px solid var(-
 <body>
 <main>
 <h1>everything-line-v1: playback</h1>
-<p style="border-left: 4px solid #d93333; padding: 6px 10px; background: #fdf1f1;">This line does not pass its own checks: 10 pairs of stations collide, and the parts of 2 stations collide with each other; 5 of its 8 hand-overs fail; none of 100 mis-built copies work. Parts seen passing through each other are collisions those checks report.</p>
+<p style="border-left: 4px solid #d93333; padding: 6px 10px; background: #2a1010;">This line does not pass its own checks: 10 pairs of stations collide, and the parts of 2 stations collide with each other; 5 of its 8 hand-overs fail; none of 100 mis-built copies work. Parts seen passing through each other are collisions those checks report.</p>
 <p class="note">Flat views of the same data as this line's FreeCAD model, played over the line's cycle. This page
 is not the model: it shows only what the model's data holds, each part's outline placed as the model places it, with
 no shading or perspective; nearer parts are painted over farther ones.</p>
