@@ -37,7 +37,7 @@ from a model's guess. That makes them:</p>
 <ul class="points">
 <li><strong>Checkable.</strong> Every design comes with the measurements its checks made, and every page here is
 checked against its FreeCAD model.</li>
-<li><strong>Repeatable.</strong> The same brief gives the same design. A line regenerated from its brief came out the
+<li><strong>Repeatable.</strong> The same brief and the same version of the code give the same design. A line regenerated from its brief came out the
 same, byte for byte.</li>
 <li><strong>Honest about failure.</strong> A brief that no design meets gets no design, and the reason is
 recorded.</li>
@@ -58,9 +58,14 @@ part out.</span></li>
 <span class="note">The puck line regenerated with its nests 20 mm farther apart.</span></li>
 <li><a href="puck-line-30mm-puck.html?fps">The puck line, for a 30 mm puck</a><br>
 <span class="note">The puck line regenerated for a larger puck.</span></li>
-<li><a href="everything-line.html?fps">The everything line</a><br>
+<li><a href="everything-line.html?fps">The everything line: a stress test, not a working line</a><br>
 <span class="note">Nine stations on one 1.5 s cycle, each brief written to draw a different family, so that one line
-uses every family the library has.</span></li>
+uses all nine. It was put together to run every family through one line, and the checks that judge a line as a
+whole were built and tested on it; it was left as first laid out. Those checks find that it cannot be built: ten
+pairs of stations collide; five of its eight hand-overs fail (three are open for under 5 ms of the 50 needed, and
+two never open); and none of 100 mis-built copies works. What it taught: a part must be held still where it changes
+hands, stations need the room their own mechanisms take, and choosing each station on its own does not make a line.
+Every other line here was designed after those checks existed, and passes them.</span></li>
 </ul>
 
 <h2>Single mechanisms</h2>
@@ -69,6 +74,8 @@ uses every family the library has.</span></li>
 <span class="note">One of the two designs for the puck transfer, the brief written for the first printed build.</span></li>
 <li><a href="puck-transfer-barrel-cam.html?fps">The puck transfer: a barrel cam</a><br>
 <span class="note">The other design for the puck transfer.</span></li>
+<li><a href="puck-transfer-rocker-cam-built.html?fps">The puck transfer's rocker cam, as built</a><br>
+<span class="note">Printed parts, bearings, pins, guide rods and the belt drive on the plywood board.</span></li>
 </ul>
 <p class="note">The project's first designs, each for a brief of its own:</p>
 <ul>
