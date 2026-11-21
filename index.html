@@ -29,7 +29,8 @@ data as their FreeCAD models.</p>
 it must be held and for how long, how much space there is, and how accurately it will be built. The brief goes to a
 library of nine mechanism families. Each family has its own design search and its own independent check, written a
 different way from the search. Only designs that pass their check, fit the space, and still meet the brief on at
-least 90% of simulated copies built with the stated errors are kept, and the smallest of those is picked. A line is
+least 90% of simulated copies built with the stated errors are kept. Among those, a design that meets the brief
+exactly is preferred to one that approximates it, and then the smallest is picked. A line is
 then checked as a whole: its timing, every hand-over, collisions through the full cycle, and 100 mis-built copies of
 the entire line.</p>
 <p><strong>No AI model is asked to make a mechanism.</strong> The designs come from geometry and calculation, not
@@ -54,6 +55,11 @@ through four nests and take it out. Each of 100 mis-built copies works too.</spa
 <li><a href="index-table-line.html?fps">Test line B: an index-table line</a><br>
 <span class="note">A plate cam brings each part in, a Geneva wheel indexes the table, and a slider-crank takes the
 part out.</span></li>
+<li><a href="box-turn-line.html?fps">Test line C: a carton turned a quarter turn</a><br>
+<span class="note">A plate cam sets each 60 by 40 by 30 mm carton into a pocket of a four-stop table, a Geneva wheel
+turns the table a quarter turn so the carton turns with it, and a slider-crank carries it on to a chute. Both
+grippers' arms stand 12 mm to one side of centre, which keeps the slider-crank's arm clear of its own rod. It works on 96 of 100
+mis-built copies.</span></li>
 <li><a href="puck-line-pitch-140.html?fps">The puck line, nests 140 mm apart</a><br>
 <span class="note">The puck line regenerated with its nests 20 mm farther apart.</span></li>
 <li><a href="puck-line-30mm-puck.html?fps">The puck line, for a 30 mm puck</a><br>
