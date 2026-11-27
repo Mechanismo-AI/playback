@@ -14,6 +14,7 @@ h2 { font-size: 0.95rem; margin: 18px 0 6px; color: var(--muted); font-weight: 6
 p, li { color: var(--ink); }
 .note { color: var(--muted); font-size: 0.9rem; }
 #pb-readout { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.site { margin: 0 0 6px; } .site a { color: var(--muted); text-decoration: none; } .site a:hover { color: var(--ink); }
 .controls { position: sticky; top: 0; background: var(--bg); padding: 8px 0; display: flex; gap: 10px; flex-wrap: wrap;
             align-items: center; border-bottom: 1px solid var(--rule); z-index: 1; }
 .controls input[type=range] { flex: 1 1 260px; }
@@ -26,6 +27,7 @@ canvas { width: 100%; display: block; background: #000; outline: 1px solid var(-
 </head>
 <body>
 <main>
+<nav class="note site"><a href="https://run.mechanismo.ai/">&larr; All mechanisms</a> &middot; <a href="https://mechanismo.ai/">mechanismo.ai</a></nav>
 <h1>everything-line-v1: playback</h1>
 <p style="border-left: 4px solid #d93333; padding: 6px 10px; background: #2a1010;">This line does not pass its own checks: 10 pairs of stations collide, and the parts of 2 stations collide with each other; 5 of its 8 hand-overs fail; none of 100 mis-built copies work. Parts seen passing through each other are collisions those checks report.</p>
 <p class="note">Flat views of the same data as this line's FreeCAD model, played over the line's cycle. This page

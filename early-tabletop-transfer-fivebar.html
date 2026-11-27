@@ -14,6 +14,7 @@ h2 { font-size: 0.95rem; margin: 18px 0 6px; color: var(--muted); font-weight: 6
 p, li { color: var(--ink); }
 .note { color: var(--muted); font-size: 0.9rem; }
 #pb-readout { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.site { margin: 0 0 6px; } .site a { color: var(--muted); text-decoration: none; } .site a:hover { color: var(--ink); }
 .controls { position: sticky; top: 0; background: var(--bg); padding: 8px 0; display: flex; gap: 10px; flex-wrap: wrap;
             align-items: center; border-bottom: 1px solid var(--rule); z-index: 1; }
 .controls input[type=range] { flex: 1 1 260px; }
@@ -26,6 +27,7 @@ canvas { width: 100%; display: block; background: #000; outline: 1px solid var(-
 </head>
 <body>
 <main>
+<nav class="note site"><a href="https://run.mechanismo.ai/">&larr; All mechanisms</a> &middot; <a href="https://mechanismo.ai/">mechanismo.ai</a></nav>
 <h1>Geared five-bar: playback</h1>
 <p class="note">Two cranks tied by gears or a belt, carrier on a coupler.</p>
 <p style="border-left: 4px solid #d93333; padding: 6px 10px; background: #2a1010;">Designed before the transmission rule of 19 November 2026, which it does not meet: its transmission angle falls to 12.5 degrees in its cycle, against the 30 the rule asks of a linkage. Today&#x27;s selector would not pick it.</p>
