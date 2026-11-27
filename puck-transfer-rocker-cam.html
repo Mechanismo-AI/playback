@@ -842,9 +842,10 @@ if (typeof module !== "undefined") module.exports = PB;
         //   clip of the canvas less its holes (one clip a hole, so holes that meet are left out whole), which is what
         //   erasing them did;
         // - a see-through face whose holes keep apart (their boxes do not meet) and lie wholly inside it, clear of its
-        //   edge (``within``): the face and its holes as one path filled even-odd, then the holes filled to the
-        //   a * (1 - a) that erasing with the face's own alpha left in them;
-        // - any other: on the layer as before, but only the face's own box of it cleared and copied.
+        //   edge (``within``): the face and its holes as one path filled even-odd;
+        // - any other: on the layer, only the face's own box of it cleared and copied.
+        // Holes are empty, see-through faces' too, as the slanted views show them (the owner, 2026-11-27: until then
+        // erasing took the face's own alpha, so a see-through face's holes kept a * (1 - a) of it: a fixed part's 24%).
         const holes = s.holes.map((hp) => hp.map(([x, y]) => [X(x), Y(y)]));
         const outline = s.pts.map(([x, y]) => [X(x), Y(y)]);
         const pad = reach(outline, 0.75 * dpr) + 1;   // how far the edge drawn round it reaches, and a pixel more
@@ -865,12 +866,6 @@ if (typeof module !== "undefined") module.exports = PB;
           const face = new Path2D(path);
           for (const q of holes) ring(face, q);
           ctx.fillStyle = fill; ctx.fill(face, "evenodd");
-          if (a < 1) {                      // the layer's erasing took the face's own alpha, so a see-through face's
-            // holes kept a * (1 - a) of it (a fixed part's: 24%); drawn so here too, to keep the picture as it was
-            const kept = new Path2D();
-            for (const q of holes) ring(kept, q);
-            ctx.fillStyle = css(s.rgb, a * (1 - a)); ctx.fill(kept);
-          }
           ctx.lineJoin = "miter"; ctx.strokeStyle = edge; ctx.lineWidth = 0.75 * dpr; ctx.stroke(path);
           ctx.lineJoin = "round";
           continue;
@@ -887,6 +882,7 @@ if (typeof module !== "undefined") module.exports = PB;
         target.fillStyle = fill; target.fill(path); target.strokeStyle = edge; target.lineWidth = 0.75 * dpr;
         target.stroke(path);
         target.globalCompositeOperation = "destination-out";
+        target.fillStyle = "#000";          // erased wholly: an opaque fill, whatever the face's own alpha
         for (const q of holes) { const hole = new Path2D(); ring(hole, q); target.fill(hole); }
         target.globalCompositeOperation = "source-over";
         ctx.drawImage(layer, ...box, ...box);
