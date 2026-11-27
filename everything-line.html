@@ -13,6 +13,7 @@ h1 { font-size: 1.25rem; margin: 0 0 4px; }
 h2 { font-size: 0.95rem; margin: 18px 0 6px; color: var(--muted); font-weight: 600; }
 p, li { color: var(--ink); }
 .note { color: var(--muted); font-size: 0.9rem; }
+#pb-readout { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .controls { position: sticky; top: 0; background: var(--bg); padding: 8px 0; display: flex; gap: 10px; flex-wrap: wrap;
             align-items: center; border-bottom: 1px solid var(--rule); z-index: 1; }
 .controls input[type=range] { flex: 1 1 260px; }
@@ -845,9 +846,10 @@ if (typeof module !== "undefined") module.exports = PB;
         //   clip of the canvas less its holes (one clip a hole, so holes that meet are left out whole), which is what
         //   erasing them did;
         // - a see-through face whose holes keep apart (their boxes do not meet) and lie wholly inside it, clear of its
-        //   edge (``within``): the face and its holes as one path filled even-odd, then the holes filled to the
-        //   a * (1 - a) that erasing with the face's own alpha left in them;
-        // - any other: on the layer as before, but only the face's own box of it cleared and copied.
+        //   edge (``within``): the face and its holes as one path filled even-odd;
+        // - any other: on the layer, only the face's own box of it cleared and copied.
+        // Holes are empty, see-through faces' too, as the slanted views show them (the owner, 2026-11-27: until then
+        // erasing took the face's own alpha, so a see-through face's holes kept a * (1 - a) of it: a fixed part's 24%).
         const holes = s.holes.map((hp) => hp.map(([x, y]) => [X(x), Y(y)]));
         const outline = s.pts.map(([x, y]) => [X(x), Y(y)]);
         const pad = reach(outline, 0.75 * dpr) + 1;   // how far the edge drawn round it reaches, and a pixel more
@@ -868,12 +870,6 @@ if (typeof module !== "undefined") module.exports = PB;
           const face = new Path2D(path);
           for (const q of holes) ring(face, q);
           ctx.fillStyle = fill; ctx.fill(face, "evenodd");
-          if (a < 1) {                      // the layer's erasing took the face's own alpha, so a see-through face's
-            // holes kept a * (1 - a) of it (a fixed part's: 24%); drawn so here too, to keep the picture as it was
-            const kept = new Path2D();
-            for (const q of holes) ring(kept, q);
-            ctx.fillStyle = css(s.rgb, a * (1 - a)); ctx.fill(kept);
-          }
           ctx.lineJoin = "miter"; ctx.strokeStyle = edge; ctx.lineWidth = 0.75 * dpr; ctx.stroke(path);
           ctx.lineJoin = "round";
           continue;
@@ -890,6 +886,7 @@ if (typeof module !== "undefined") module.exports = PB;
         target.fillStyle = fill; target.fill(path); target.strokeStyle = edge; target.lineWidth = 0.75 * dpr;
         target.stroke(path);
         target.globalCompositeOperation = "destination-out";
+        target.fillStyle = "#000";          // erased wholly: an opaque fill, whatever the face's own alpha
         for (const q of holes) { const hole = new Path2D(); ring(hole, q); target.fill(hole); }
         target.globalCompositeOperation = "source-over";
         ctx.drawImage(layer, ...box, ...box);
@@ -908,12 +905,16 @@ if (typeof module !== "undefined") module.exports = PB;
       }
     }
     const cyc = Math.min(Math.floor(master / 360), data.period_cycles - 1), deg = master - 360 * cyc;
-    readout.textContent = `cycle ${cyc + 1} of ${data.period_cycles}, master ${deg.toFixed(1)}°, ` +
-      `${(master / 360 * data.cycle_s).toFixed(2)} s`;
+    // Numbers padded to their widest with figure spaces (as wide as a digit) and drawn with digits all one width, so
+    // the readout keeps its width as they count and the controls beside it stay put (the owner, on a phone).
+    const pad = (text, most) => text.padStart(most.length, "\u2007");
+    readout.textContent = `cycle ${pad(String(cyc + 1), String(data.period_cycles))} of ${data.period_cycles}, ` +
+      `master ${pad(deg.toFixed(1), "359.9")}°, ` +
+      `${pad((master / 360 * data.cycle_s).toFixed(2), (data.period_cycles * data.cycle_s).toFixed(2))} s`;
     if (rate) {                         // with ?fps in the address: frames drawn a second, over the last two seconds
       const now = performance.now();
       rate.push(now); while (rate.length && rate[0] < now - 2000) rate.shift();
-      readout.textContent += `, ${(rate.length / 2).toFixed(1)} frames a second`;
+      readout.textContent += `, ${pad((rate.length / 2).toFixed(1), "120.0")} fps`;
     }
   }
   let run = null;                       // the playing run; a frame from an earlier run stops itself
