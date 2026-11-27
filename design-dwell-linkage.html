@@ -13,6 +13,7 @@ h1 { font-size: 1.25rem; margin: 0 0 4px; }
 h2 { font-size: 0.95rem; margin: 18px 0 6px; color: var(--muted); font-weight: 600; }
 p, li { color: var(--ink); }
 .note { color: var(--muted); font-size: 0.9rem; }
+#pb-readout { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .controls { position: sticky; top: 0; background: var(--bg); padding: 8px 0; display: flex; gap: 10px; flex-wrap: wrap;
             align-items: center; border-bottom: 1px solid var(--rule); z-index: 1; }
 .controls input[type=range] { flex: 1 1 260px; }
@@ -902,12 +903,16 @@ if (typeof module !== "undefined") module.exports = PB;
       }
     }
     const cyc = Math.min(Math.floor(master / 360), data.period_cycles - 1), deg = master - 360 * cyc;
-    readout.textContent = `cycle ${cyc + 1} of ${data.period_cycles}, master ${deg.toFixed(1)}°, ` +
-      `${(master / 360 * data.cycle_s).toFixed(2)} s`;
+    // Numbers padded to their widest with figure spaces (as wide as a digit) and drawn with digits all one width, so
+    // the readout keeps its width as they count and the controls beside it stay put (the owner, on a phone).
+    const pad = (text, most) => text.padStart(most.length, "\u2007");
+    readout.textContent = `cycle ${pad(String(cyc + 1), String(data.period_cycles))} of ${data.period_cycles}, ` +
+      `master ${pad(deg.toFixed(1), "359.9")}°, ` +
+      `${pad((master / 360 * data.cycle_s).toFixed(2), (data.period_cycles * data.cycle_s).toFixed(2))} s`;
     if (rate) {                         // with ?fps in the address: frames drawn a second, over the last two seconds
       const now = performance.now();
       rate.push(now); while (rate.length && rate[0] < now - 2000) rate.shift();
-      readout.textContent += `, ${(rate.length / 2).toFixed(1)} frames a second`;
+      readout.textContent += `, ${pad((rate.length / 2).toFixed(1), "120.0")} fps`;
     }
   }
   let run = null;                       // the playing run; a frame from an earlier run stops itself
